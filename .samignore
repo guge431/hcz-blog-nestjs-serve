@@ -1,0 +1,17 @@
+node_modules/.cache/
+node_modules/.pnpm/ 
+node_modules/.bin/
+node_modules/**/.git/
+node_modules/**/__pycache__/
+node_modules/**/test/
+node_modules/**/tests/
+node_modules/**/*.py
+node_modules/**/*.pyc
+src/
+.git/
+*.md
+.env*
+coverage/
+docs/
+layer/
+EOF

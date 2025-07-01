@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'HCZ Blog NestJS API - Updated with correct password'
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 1024  # 先用 1024MB，成功后可以调整到 3008MB
+    Runtime: nodejs20.x
+    Architectures: ['arm64']
+    Environment:
+      Variables:
+        NODE_OPTIONS: '--enable-source-maps'
+        NODE_ENV: production
+  Api:
+    OpenApiVersion: '2.0'
+    Cors:
+      AllowMethods: "'*'"
+      AllowHeaders: "'Content-Type,Authorization'"
+      AllowOrigin: "'*'"
+      MaxAge: 600
+
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      BinaryMediaTypes:
+        - 'image/*'
+        - 'multipart/form-data'
+      Auth:
+        DefaultAuthorizer: NONE
+
+  NestjsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda.handler
+      CodeUri: ./dist
+      MemorySize: 3008
+      Timeout: 60
+      Environment:
+        Variables:
+          NODE_ENV: production
+          DATABASE_WRITE_HOST: guge-blog-database-2.cluster-cwtmqaa6mnq9.us-east-1.rds.amazonaws.com
+          DATABASE_WRITE_PORT: 5432
+          DATABASE_WRITE_USERNAME: guge123
+          DATABASE_WRITE_PASSWORD: ~?oyzQ1r?lCuCQ6:ORxAA8m7yk~1
+          DATABASE_WRITE_NAME: postgres
+          DATABASE_READ_HOST: guge-blog-database-2.cluster-ro-cwtmqaa6mnq9.us-east-1.rds.amazonaws.com
+          DATABASE_READ_PORT: 5432
+          DATABASE_READ_USERNAME: guge123  # 通常与主库相同
+          DATABASE_READ_PASSWORD: ~?oyzQ1r?lCuCQ6:ORxAA8m7yk~1  # 通常与主库相同
+          DATABASE_READ_NAME: postgres         # 通常与主库相同
+          DATABASE_TYPE: postgres  # 或 mysql
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-0892d2db0041cb4a5
+        SubnetIds:
+          - subnet-06fa753bfa8fb7133  # us-east-1a
+          - subnet-0279787fb94c06417  # us-east-1e
+     
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+            RestApiId: !Ref Api
+            Auth:
+              Authorizer: NONE
+        RootEvent:
+          Type: Api
+          Properties:
+            Path: /
+            Method: ANY
+            RestApiId: !Ref Api
+            Auth:
+              Authorizer: NONE
+      AutoPublishAlias: live  
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/dev'
+  FunctionArn:
+    Description: Lambda Function ARN
+    Value: !GetAtt NestjsFunction.Arn
